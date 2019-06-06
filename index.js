@@ -1,4 +1,5 @@
 let mongoose = require('mongoose');
+let express = require('express');
 let util = require('util');
 
 // Slackbot section
@@ -98,3 +99,15 @@ const errorCallback = ( err ) => {
         return 400;
     }
 }
+
+// Webserver section
+const app = express();
+const port = process.env.PORT || 3019;
+
+app.use(express.static('public'));
+
+app.get('/', (req, res) => {
+    res.send('HELLO WORLD');
+});
+
+app.listen(port, () => console.log(`App listening on port ${port}!`))
