@@ -1,33 +1,32 @@
 const SlackBot = require('slackbots');
+const util = require('util');
 
-const token = process.env.bot_token;
+require('dotenv').config({path: __dirname + '/.env'})
 
-// create a bot
+const token = process.env.BOT_TOKEN;
+
+// create the bot
 let bot = new SlackBot({
     token: token, // Add a bot https://my.slack.com/services/new/bot and put the token 
     name: 'Chores Bot'
 });
 
-// bot.on('start', function() {
-//     // more information about additional params https://api.slack.com/methods/chat.postMessage
-//     var params = {
-//         icon_emoji: ':cat:'
-//     };
-    
-//     // define channel, where bot exist. You can adjust it there https://my.slack.com/services 
-//     // bot.postMessageToChannel('general', 'meow!', params);
-    
-//     // define existing username instead of 'user_name'
-//     bot.postMessageToUser('user_name', 'meow!', params); 
-    
-//     // If you add a 'slackbot' property, 
-//     // you will post to another user's slackbot channel instead of a direct message
-//     // bot.postMessageToUser('user_name', 'meow!', { 'slackbot': true, icon_emoji: ':cat:' }); 
-    
-//     // define private group instead of 'private_group', where bot exist
-//     // bot.postMessageToGroup('private_group', 'meow!', params); 
+// bot.on('message', ( message ) => {
+//     console.log(message);
+//     console.log(message.user);
+//     bot.postMessage(message.user, "hi", { as_user: true });
 // });
 
+// bot.on('start', ( ) => {
+//     console.log(util.inspect(bot.getUsers(), {showHidden: false, depth: null}))
+// })
+
 bot.on('message', ( message ) => {
-    bot.postMessage(msg.user, "hi", { as_user: true });
+    let params = {
+        icon_emoji: ':cat:',
+        as_user: true
+    }
+    if ( message.text && message.text.includes('<@UK0323283>') ) {
+        bot.postMessage(message.user, 'meow!', params);
+    }
 });
