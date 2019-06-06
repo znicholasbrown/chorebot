@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/znicholasbrown/chorebot/issues"
   },
-  "homepage": "https://github.com/znicholasbrown/chorebot#readme"
+  "homepage": "https://github.com/znicholasbrown/chorebot#readme",
+  "dependencies": {
+    "slackbots": "^1.2.0"
+  }
 }
