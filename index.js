@@ -107,7 +107,7 @@ const port = process.env.PORT || 3019;
 app.use(express.static('public'));
 
 app.get('/', (req, res) => {
-    res.send('HELLO WORLD');
+    res.sendFile(__dirname + '/index.html');
 });
 
-app.listen(port, () => console.log(`App listening on port ${port}!`))
+app.listen(port, () => console.log(`App listening on port ${port}.`));
