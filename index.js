@@ -27,7 +27,7 @@ bot.on('message', ( message ) => {
 
 
 // Database Function Section
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true });
+let connection = mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true });
 
 const Schema = mongoose.Schema;
  
@@ -43,17 +43,6 @@ const ChoreSchema = new Schema({
 
 const Chore = mongoose.model('chore', ChoreSchema);
 
-const getChores = () => {
-    Chore.find({ deleted: false }, ( err, docs ) => {
-        if (err) {
-            console.log(util.inspect(err));
-            return 400;
-        }
-        console.log(util.inspect(docs));
-        return docs;
-    });
-}
-
 const getDeletedChores = () => {
     Chore.find({ deleted: true }, ( err, docs ) => {
         if (err) {
@@ -66,7 +55,7 @@ const getDeletedChores = () => {
 }
 
 const addChore = ( choreData ) => {
-    new Chore(choreData).save( errorCallback );
+    
 }
 
 const deleteChore = ( choreId ) => {
@@ -110,4 +99,37 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-app.listen(port, () => console.log(`App listening on port ${port}.`));
+app.get('/chores', (req, res) => {
+    Chore.find({ deleted: false }, ( err, docs ) => {
+        if (err) {
+            console.log(util.inspect(err));
+            return 400;
+        }
+        return res.json(docs);
+    });
+});
+
+app.get('/add', (req, res) => {
+    new Chore(req).save( (err) => {
+        if (!err) {
+            res.send(200);
+        }
+    });
+});
+
+
+
+// Close the server and db connection
+let server = app.listen(port, () => console.log(`App listening on port ${port}.`));
+
+process.on( 'SIGTERM', () => {
+    console.log('Exiting.');
+
+    server.close( () => {
+      console.log('Server closed.');
+    });
+    
+    connection.close( () => {
+        console.log('Database connection closed.');
+    })
+ });

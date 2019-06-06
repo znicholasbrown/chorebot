@@ -10,12 +10,21 @@
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="">
+        <link rel="icon" href="/images/favicon.ico">
     </head>
     <body>
         <!--[if lt IE 7]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
-        <strong>HELLO WORLD!</strong>
-        <script src="" async defer></script>
+        <div v-if="choreList" id="chore-list">
+            Chore list:
+            <ul>
+                <li v-for="chore in choreList">
+                    {{ chore.title }}
+                </li>
+            </ul>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+        <script src="/src.js" async defer></script>
     </body>
 </html>
