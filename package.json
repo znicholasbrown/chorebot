@@ -1,0 +1,24 @@
+{
+  "name": "chorebot",
+  "version": "1.0.0",
+  "description": "A Slack bot to randomly assign chores to people in the workspace",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/znicholasbrown/chorebot.git"
+  },
+  "keywords": [
+    "slack",
+    "bot",
+    "chore"
+  ],
+  "author": "Nicholas Brown",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/znicholasbrown/chorebot/issues"
+  },
+  "homepage": "https://github.com/znicholasbrown/chorebot#readme"
+}
