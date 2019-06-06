@@ -3,3 +3,14 @@
     height: 176px;
     background: url('https://images.pexels.com/photos/1234853/pexels-photo-1234853.jpeg?auto=format%2Ccompress&cs=tinysrgb&dpr=2&h=750&w=1260') center / cover;
 }
+
+#add-chore {
+    position: fixed;
+    right: 25px;
+    bottom: 25px;
+}
+
+.mdl-button--fab.mdl-button--colored {
+    background: #1ABC9C !important;
+    color: rgb(255,255,255) !important;
+}
