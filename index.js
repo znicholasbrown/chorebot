@@ -212,7 +212,7 @@ process.on( 'SIGTERM', () => {
       console.log('Server closed.');
     });
     
-    connection.close( () => {
+    mongoose.connection.close( () => {
         console.log('Database connection closed.');
     })
  });
