@@ -316,6 +316,8 @@ function getAccessToken(oAuth2Client, callback) {
 
 function listOOOEvents(auth) {
     const calendar = google.calendar({version: 'v3', auth});
+    // Can add US Holiday calendar
+    // en.usa#holiday@group.v.calendar.google.com
     calendar.events.list({
       calendarId: process.env.CALENDAR_ID,
       timeMin: (new Date(new Date().setHours(0,0,0,0))).toISOString(),
