@@ -1,5 +1,6 @@
 let mongoose = require('mongoose');
 let express = require('express');
+let bodyParser = require('body-parser');
 let util = require('util');
 
 // Slackbot section
@@ -54,22 +55,6 @@ const getDeletedChores = () => {
     });
 }
 
-const addChore = ( choreData ) => {
-    
-}
-
-const deleteChore = ( choreId ) => {
-    Chore.findById( choreId, ( err, chore ) => {
-        if (err) {
-            console.log(util.inspect(err));
-            return 400;
-        }
-
-        chore.deleted = true;
-        chore.save( errorCallback );
-    });
-}
-
 const reinstateDeletedChore = ( choreId ) => {
     Chore.findById( choreId, ( err, chore ) => {
         if (err) {
@@ -93,10 +78,12 @@ const errorCallback = ( err ) => {
 const app = express();
 const port = process.env.PORT || 3019;
 
-app.use(express.static('public'));
+app.use(express.static('src'));
+
+let jsonParser = bodyParser.json();
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile(__dirname + '/src/index.html');
 });
 
 app.get('/chores', (req, res) => {
@@ -109,10 +96,21 @@ app.get('/chores', (req, res) => {
     });
 });
 
-app.get('/add', (req, res) => {
-    new Chore(req).save( (err) => {
+app.post('/add', jsonParser, (req, res) => {
+    new Chore(req.body).save( (err) => {
         if (!err) {
-            res.send(200);
+            res.sendStatus(200);
+        }
+    });
+});
+
+app.post('/delete', jsonParser, (req, res) => {
+    Chore.findById( req.body.id, ( err, chore ) => {
+        chore.deleted = true;
+        chore.save( errorCallback );
+        
+        if (!err) {
+            res.sendStatus(200);
         }
     });
 });
