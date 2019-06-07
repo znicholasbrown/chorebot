@@ -56,6 +56,42 @@ const ChoreSchema = new Schema({
 
 const Chore = mongoose.model('chore', ChoreSchema);
 
+const UserSchema = new Schema({
+    id: String,
+    email: String,
+    name: String,
+    score: { type: Number, default: 0 },
+    recentTask: { type: String, default: '' }
+});
+
+const User = mongoose.model('user', UserSchema);
+
+// Makes sure we have any new members that have been added to Slack!
+const updateUsers = () => {
+    bot.getUsers().then((users) => {
+        // Filer any users who have been deleted or are bots
+        users.members.filter(user => !user.deleted && !user.is_bot).forEach((user) => {
+            bot.getUser(user.name).then(u => {
+                let userModel = {
+                    id: u.id,
+                    email: u.profile.email,
+                    name: u.name,
+                    image: u.profile.image_512
+                }
+
+                User.findOneAndUpdate(userModel, { upsert: true, new: true, setDefaultsOnInsert: true }, (err, res) => {
+                    if (!err) {
+                        console.log('Users updated successfully.')
+                    } else {
+                        console.log(err);
+                    }
+                });
+            });
+        });
+    });
+}
+updateUsers();
+
 const getDeletedChores = () => {
     Chore.find({ deleted: true }, ( err, docs ) => {
         if (err) {
@@ -156,6 +192,9 @@ process.on( 'SIGTERM', () => {
     })
  });
 
+
+
+// Job scheduler
 schedule.scheduleJob('* 10 * * *', (sched) => {
 
     Chore.find({ deleted: false }, ( err, docs ) => {
@@ -258,9 +297,38 @@ function listOOOEvents(auth) {
           }
         });
 
-        console.log(ooo.join(', '))
+        assignChores(ooo);
       } else {
         console.log('No upcoming events found.');
       }
+    });
+}
+
+// Chore assignment logic
+
+const assignChores = ( outOfOffice ) => {
+    let emails = [
+        'n.brown@fraym.io',
+        'k.quintero@fraym.io'
+    ]
+
+    Chore.find({ deleted: false }, ( err, docs ) => {
+        if (err) {
+            console.log(util.inspect(err));
+            return 400;
+        }
+
+        docs = docs.filter( d => d.frequency.includes(new Date().getDay()) );
+
+        let assignments = []
+        docs.forEach(doc => {
+            
+        });
+
+        // bot.getChannel('chorebot').then(c => {
+        //     bot.postMessageToChannel(c.name, `The scheduled chores for today are: ${docs.reduce( (acc, doc) => [...acc, doc.title], []).join(', ')}`, params, function(data) {
+        //         console.log(data);
+        //     });
+        // });
     });
 }
