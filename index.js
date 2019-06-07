@@ -97,9 +97,21 @@ app.get('/chores', (req, res) => {
 });
 
 app.post('/add', jsonParser, (req, res) => {
-    new Chore(req.body).save( (err) => {
+    new Chore(req.body).save( (err, chore) => {
         if (!err) {
             res.sendStatus(200);
+
+            bot.getChannel('chorebot').then(c => {
+
+                let params = {
+                    icon_emoji: ':cat:',
+                    as_user: true
+                }
+
+                bot.postMessageToChannel(c.name, `${chore.title} added by ${chore.creator}.`, params, function(data) {
+                    console.log(data);
+                });
+            });
         }
     });
 });
@@ -111,6 +123,18 @@ app.post('/delete', jsonParser, (req, res) => {
         
         if (!err) {
             res.sendStatus(200);
+            
+            bot.getChannel('chorebot').then(c => {
+
+                let params = {
+                    icon_emoji: ':cat:',
+                    as_user: true
+                }
+
+                bot.postMessageToChannel(c.name, `${chore.title} removed.`, params, function(data) {
+                    console.log(data);
+                });
+            });
         }
     });
 });
