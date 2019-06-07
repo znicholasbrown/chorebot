@@ -1,6 +1,7 @@
 let mongoose = require('mongoose');
 let express = require('express');
 let bodyParser = require('body-parser');
+let schedule = require('node-schedule');
 let util = require('util');
 
 // Slackbot section
@@ -16,11 +17,22 @@ let bot = new SlackBot({
     name: 'Chores Bot'
 });
 
+const params = {
+    icon_emoji: ':cat:',
+    as_user: true
+}
+
+const daysOfTheWeek = {
+    0: 'Sunday',
+    1: 'Monday',
+    2: 'Tuesday',
+    3: 'Wednesday',
+    4: 'Thursday',
+    5: 'Friday',
+    6: 'Saturday'
+}
+
 bot.on('message', ( message ) => {
-    let params = {
-        icon_emoji: ':cat:',
-        as_user: true
-    }
     if ( message.text && message.text.includes('<@UK0323283>') ) {
         bot.postMessage(message.user, 'meow!', params);
     }
@@ -102,12 +114,6 @@ app.post('/add', jsonParser, (req, res) => {
             res.sendStatus(200);
 
             bot.getChannel('chorebot').then(c => {
-
-                let params = {
-                    icon_emoji: ':cat:',
-                    as_user: true
-                }
-
                 bot.postMessageToChannel(c.name, `${chore.title} added by ${chore.creator}.`, params, function(data) {
                     console.log(data);
                 });
@@ -125,12 +131,6 @@ app.post('/delete', jsonParser, (req, res) => {
             res.sendStatus(200);
             
             bot.getChannel('chorebot').then(c => {
-
-                let params = {
-                    icon_emoji: ':cat:',
-                    as_user: true
-                }
-
                 bot.postMessageToChannel(c.name, `${chore.title} removed.`, params, function(data) {
                     console.log(data);
                 });
@@ -155,3 +155,22 @@ process.on( 'SIGTERM', () => {
         console.log('Database connection closed.');
     })
  });
+
+ schedule.scheduleJob('* 10 * * *', (sched) => {
+
+    Chore.find({ deleted: false }, ( err, docs ) => {
+        if (err) {
+            console.log(util.inspect(err));
+            return 400;
+        }
+
+        docs = docs.filter( d => d.frequency.includes(new Date().getDay()) );
+
+        bot.getChannel('chorebot').then(c => {
+            bot.postMessageToChannel(c.name, `The scheduled chores for today are: ${docs.reduce( (acc, doc) => [...acc, doc.title], []).join(', ')}`, params, function(data) {
+                console.log(data);
+            });
+        });
+    });
+
+})
