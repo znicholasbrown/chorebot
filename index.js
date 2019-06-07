@@ -60,11 +60,15 @@ const UserSchema = new Schema({
     id: String,
     email: String,
     name: String,
+    isActive: { type: Boolean, default: true },
     score: { type: Number, default: 0 },
-    recentTask: { type: String, default: '' }
+    recentTask: { type: String, default: '' },
+    assignedTask: { type: Boolean, default: false },
+    assignedTaskId: { type: String, default: false },
+    respondedToMessage: { type: Boolean, default: false }
 });
 
-const User = mongoose.model('user', UserSchema);
+const User = mongoose.model('slack_user', UserSchema);
 
 // Makes sure we have any new members that have been added to Slack!
 const updateUsers = () => {
@@ -79,11 +83,9 @@ const updateUsers = () => {
                     image: u.profile.image_512
                 }
 
-                User.findOneAndUpdate(userModel, { upsert: true, new: true, setDefaultsOnInsert: true }, (err, res) => {
-                    if (!err) {
-                        console.log('Users updated successfully.')
-                    } else {
-                        console.log(err);
+                User.findOneAndUpdate({ id: u.id }, userModel, { upsert: true, new: true, setDefaultsOnInsert: true }, (err, res) => {
+                    if (err) {
+                        console.log(util.inspect(err));
                     }
                 });
             });
@@ -196,6 +198,19 @@ process.on( 'SIGTERM', () => {
 
 // Job scheduler
 schedule.scheduleJob('* 10 * * *', (sched) => {
+    // Resets the assigned tasks at the beginning of the day. 
+    User.find(( err, user ) => {
+        if (err) {
+            console.log(err);
+            return 400;
+        }
+        
+        users.forEach( user => {
+            user.assignedTask = false;
+            user.assignedTaskId = false;
+            user.save();
+        });
+    });
 
     Chore.find({ deleted: false }, ( err, docs ) => {
         if (err) {
@@ -212,7 +227,7 @@ schedule.scheduleJob('* 10 * * *', (sched) => {
         });
     });
 
-})
+});
 
 
 // Google API auth section
@@ -288,10 +303,8 @@ function listOOOEvents(auth) {
       const events = res.data.items;
       if (events.length) {
         let ooo = []
-        console.log('Upcoming 10 events:');
         events.map((event, i) => {
           const start = event.start.dateTime || event.start.date;
-          console.log(`${start} - ${event.summary}`);
           if ( !ooo.includes(event.creator.email) ) {
               ooo.push(event.creator.email)
           }
@@ -306,29 +319,55 @@ function listOOOEvents(auth) {
 
 // Chore assignment logic
 
-const assignChores = ( outOfOffice ) => {
-    let emails = [
-        'n.brown@fraym.io',
-        'k.quintero@fraym.io'
-    ]
+const assignChores = async ( outOfOffice ) => {
+    console.log('Assigning chores...');
+    let availableUsers = [],
+        currentChores = [];
 
-    Chore.find({ deleted: false }, ( err, docs ) => {
+    await User.find({ isActive: true }, ( err, us ) => {
+        if (err) {
+            console.log(err);
+            return 400;
+        }
+
+        us.forEach( user => {
+            user.assignedTask = false;
+            user.assignedTaskId = false;
+            user.save();
+
+            if ( !outOfOffice.includes(user.email) ) {
+                availableUsers.push(user);
+            }
+        });
+    });
+
+
+    await Chore.find({ deleted: false }, ( err, ch ) => {
         if (err) {
             console.log(util.inspect(err));
             return 400;
         }
 
-        docs = docs.filter( d => d.frequency.includes(new Date().getDay()) );
+        ch = ch.filter( c => c.frequency.includes(new Date().getDay()) ).sort( (a, c) => c.difficulty - a.difficulty );
 
-        let assignments = []
-        docs.forEach(doc => {
-            
-        });
+        currentChores = ch;
+    });
 
-        // bot.getChannel('chorebot').then(c => {
-        //     bot.postMessageToChannel(c.name, `The scheduled chores for today are: ${docs.reduce( (acc, doc) => [...acc, doc.title], []).join(', ')}`, params, function(data) {
-        //         console.log(data);
-        //     });
-        // });
+    currentChores.forEach( async (chore) => {
+        let assignedUser = availableUsers.find( (u) => !u.assignedTask );
+
+        assignedUser.assignedTask = true;
+
+        await User.findByIdAndUpdate(assignedUser._id, {assignedTaskId: chore.id, assignedTask: true}, { new: true }, (err, user) => {
+            if (err) {
+                console.log(err);
+                return 400;
+            }
+            // bot.getChannel('chorebot').then(c => {
+            //     bot.postMessageToChannel(c.name, `${user.name} has been assigned ${chore.title}.`, params, function(data) {
+            //         console.log(data);
+            //     });
+            // });
+        })
     });
 }
