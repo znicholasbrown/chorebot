@@ -51,6 +51,7 @@ const newChoreList = ( list ) => {
 }
 
 const newUserList = ( list ) => {
+    console.log(list)
     new Vue({
         el: '#user-list',
         data: function () {

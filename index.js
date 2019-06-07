@@ -63,6 +63,7 @@ const UserSchema = new Schema({
     id: String,
     email: String,
     name: String,
+    userName: String,
     image: String,
     isActive: { type: Boolean, default: true },
     score: { type: Number, default: 0 },
@@ -85,6 +86,7 @@ const updateUsers = async () => {
                     id: u.id,
                     email: u.profile.email,
                     name: u.profile.real_name_normalized,
+                    userName: u.name,
                     image: u.profile.image_512
                 }
 
@@ -220,7 +222,7 @@ process.on( 'SIGTERM', () => {
 
 
 // Job scheduler
-schedule.scheduleJob('* 10 * * *', (sched) => {
+schedule.scheduleJob('0 10 * * 1-5', (sched) => {
     // Resets the assigned tasks at the beginning of the day. 
     User.find(( err, user ) => {
         if (err) {
@@ -235,6 +237,7 @@ schedule.scheduleJob('* 10 * * *', (sched) => {
         });
     });
 
+
     Chore.find({ deleted: false }, ( err, docs ) => {
         if (err) {
             console.log(util.inspect(err));
@@ -248,8 +251,9 @@ schedule.scheduleJob('* 10 * * *', (sched) => {
                 console.log(data);
             });
         });
-    });
 
+        authorize(listOOOEvents);
+    });
 });
 
 
@@ -266,8 +270,6 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
 const TOKEN_PATH = 'token.json';
 
 // Load client secrets from env.
-authorize(listOOOEvents);
-
 function authorize(callback) {
     const {client_secret, client_id, redirect_uris} = {
         client_secret: process.env.client_secret, 
@@ -332,8 +334,6 @@ function listOOOEvents(auth) {
               ooo.push(event.creator.email)
           }
         });
-
-        assignChores(ooo);
       } else {
         console.log('No upcoming events found.');
       }
@@ -358,6 +358,7 @@ const assignChores = async ( outOfOffice ) => {
             user.assignedTaskId = false;
             user.save();
 
+            // Doesn't include those in the out of office calendar
             if ( !outOfOffice.includes(user.email) ) {
                 availableUsers.push(user);
             }
@@ -386,11 +387,17 @@ const assignChores = async ( outOfOffice ) => {
                 console.log(err);
                 return 400;
             }
-            // bot.getChannel('chorebot').then(c => {
-            //     bot.postMessageToChannel(c.name, `${user.name} has been assigned ${chore.title}.`, params, function(data) {
-            //         console.log(data);
-            //     });
-            // });
+
+            bot.getChannel('chorebot').then(c => {
+                bot.postMessageToChannel(c.name, `${user.name} has been assigned ${chore.title}.`, params, function(data) {
+                    console.log(data);
+                });
+            });
+
+            // For now it'll just notify me
+            bot.postMessageToUser("U7WE6F8KY", `${user.name} has been assigned ${chore.title}.`, params, function(data) {
+                console.log(data);
+            });
         })
     });
 }
