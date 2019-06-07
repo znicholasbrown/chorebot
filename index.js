@@ -40,6 +40,9 @@ bot.on('message', ( message ) => {
 
 
 // Database Function Section
+mongoose.set('useNewUrlParser', true);
+mongoose.set('useFindAndModify', false);
+
 let connection = mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true });
 
 const Schema = mongoose.Schema;
@@ -60,6 +63,7 @@ const UserSchema = new Schema({
     id: String,
     email: String,
     name: String,
+    image: String,
     isActive: { type: Boolean, default: true },
     score: { type: Number, default: 0 },
     recentTask: { type: String, default: '' },
@@ -71,24 +75,25 @@ const UserSchema = new Schema({
 const User = mongoose.model('slack_user', UserSchema);
 
 // Makes sure we have any new members that have been added to Slack!
-const updateUsers = () => {
-    bot.getUsers().then((users) => {
+const updateUsers = async () => {
+    await bot.getUsers().then( async (users) => {
         // Filer any users who have been deleted or are bots
-        users.members.filter(user => !user.deleted && !user.is_bot).forEach((user) => {
-            bot.getUser(user.name).then(u => {
+        await users.members.filter(user => !user.deleted && !user.is_bot).forEach( async (user) => {
+            // Have to do this to get user emails, which we'll compare to google calendar
+            await bot.getUserById(user.id).then( async (u) => {
                 let userModel = {
                     id: u.id,
                     email: u.profile.email,
-                    name: u.name,
+                    name: u.profile.real_name_normalized,
                     image: u.profile.image_512
                 }
 
-                User.findOneAndUpdate({ id: u.id }, userModel, { upsert: true, new: true, setDefaultsOnInsert: true }, (err, res) => {
+                await User.findOneAndUpdate({ id: u.id }, userModel, { upsert: true, new: true, setDefaultsOnInsert: true }, (err, res) => {
                     if (err) {
                         console.log(util.inspect(err));
                     }
                 });
-            });
+            }).catch( e => console.log(util.inspect(e)));
         });
     });
 }
@@ -143,6 +148,24 @@ app.get('/chores', (req, res) => {
             return 400;
         }
         return res.json(docs);
+    });
+});
+
+app.get('/users', (req, res) => {
+    User.find({}, ( err, docs ) => {
+        if (err) {
+            console.log(util.inspect(err));
+            return 400;
+        }
+        return res.json(docs);
+    });
+});
+
+// Could probably switch these to a single /user route that updates the whole user
+app.post('/update-user', jsonParser, (req, res) => {
+    console.log(req.body);
+    User.updateOne(req.body, ( err, user ) => {
+        res.send(user);
     });
 });
 
