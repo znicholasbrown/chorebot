@@ -165,8 +165,7 @@ app.get('/users', (req, res) => {
 
 // Could probably switch these to a single /user route that updates the whole user
 app.post('/update-user', jsonParser, (req, res) => {
-    console.log(req.body);
-    User.updateOne(req.body, ( err, user ) => {
+    User.updateOne({ _id: req.body._id }, req.body, ( err, user ) => {
         res.send(user);
     });
 });
