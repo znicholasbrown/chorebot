@@ -338,7 +338,13 @@ function authorize(callback) {
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, (err, token) => {
       if (err) return getAccessToken(oAuth2Client, callback);
-      oAuth2Client.setCredentials(JSON.parse(token));
+      oAuth2Client.setCredentials({
+          "access_token": process.env.access_token,
+          "refresh_token": process.env.refresh_token,
+          "scope": process.env.scope,
+          "token_type": process.env.token_type,
+          "expiry_date": process.env.expiry_date
+        });
       callback(oAuth2Client);
     });
   }
