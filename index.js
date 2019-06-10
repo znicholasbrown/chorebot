@@ -234,10 +234,11 @@ app.post('/delete', jsonParser, (req, res) => {
     });
 });
 
-app.post('/message-endpoint', jsonParser, (req, res) => {
+app.post('/message-endpoint', (req, res) => {
     res.sendStatus(200).end();
-    console.log(req.payload)
-    console.log(req.body.payload)
+    console.log('body: ', req.body)
+    console.log('payload: ', req.payload)
+    console.log('body.payload: ', req.body.payload)
 
     if (req.body.token != token){
         return res.status(403).end("Access forbidden");
