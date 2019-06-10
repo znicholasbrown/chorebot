@@ -150,6 +150,7 @@ const port = process.env.PORT || 3019;
 app.use(express.static('src'));
 
 let jsonParser = bodyParser.json();
+let urlEncodedParser = bodyParser.urlencoded();
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/src/index.html');
@@ -234,7 +235,14 @@ app.post('/delete', jsonParser, (req, res) => {
 });
 
 app.post('/message-endpoint', jsonParser, (req, res) => {
-    console.log(req)
+    res.sendStatus(200).end();
+    console.log(req.body)
+
+    if (req.body.token != token){
+        return res.status(403).end("Access forbidden");
+    }
+
+    
 });
 
 
@@ -437,7 +445,7 @@ const assignChores = async ( outOfOffice ) => {
             // });
             console.log(`${user.name} has been assigned ${chore.title}.`)
             // For now it'll just notify me
-            let message = [
+            let blocks = [
                 {
                     "type": "section",
                     "text": {
@@ -471,17 +479,18 @@ const assignChores = async ( outOfOffice ) => {
                     ]
                 }
             ]
-
-            const response = await web.apiCall('chat.postMessage', {
-                text: message,
+            // console.log(attachments);
+            await web.chat.postMessage({
+                text: `Hi ${user.name}, you've been assigned the chore *${chore.title}*.`,
+                mrkdwn: true,
                 channel: 'U7WE6F8KY',
-                as_user: true
-              }).catch(e => console.log(e));
-            // bot.postMessageToUser("n.brown", message, params, function(data) {
-                console.log('User notified.');
-            // }).catch(e => console.log(e));
+                as_user: true,
+                blocks: blocks,
+            }).catch(e => console.log(e));
+            
+            console.log('User notified.');
         })
     });
 }
 
-// authorize(listOOOEvents);
+authorize(listOOOEvents);
