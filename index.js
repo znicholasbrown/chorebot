@@ -237,18 +237,19 @@ app.post('/delete', jsonParser, (req, res) => {
 app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
     res.sendStatus(200).end();
 
-    if (req.body.token != token){
-        return res.status(403).end("Access forbidden");
-    }
+    // if (req.body.token != token){
+    //     return res.status(403).end("Access forbidden");
+    // }
     let payload = req.body.payload;
 
     let available = payload.actions[0].value == 'available';
 
-    let response = ''
+    let response = '';
+
     if ( available ) {
         response = 'Great! I\'ll check in at *5pm* to see if you were able to complete the chore!' 
     } else {
-        response = 'No problem! I\'ll reassign the chore!'
+        response = 'No problem! I\'ll reassign the chore.'
     }
     console.log('User response: ', payload);
     await web.chat.update({
