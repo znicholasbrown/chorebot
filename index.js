@@ -163,6 +163,16 @@ app.get('/users', (req, res) => {
     });
 });
 
+// app.get('/complete-chore', (req, res) => {
+//     User.find({}, ( err, docs ) => {
+//         if (err) {
+//             console.log(util.inspect(err));
+//             return 400;
+//         }
+//         return res.json(docs);
+//     });
+// });
+
 // Could probably switch these to a single /user route that updates the whole user
 app.post('/update-user', jsonParser, (req, res) => {
     User.updateOne({ _id: req.body._id }, req.body, ( err, user ) => {
@@ -362,6 +372,7 @@ const assignChores = async ( outOfOffice ) => {
         if (err) {
             console.log(err);
         }
+        if ( !us || us.length === 0 ) return console.log('No users...');
 
         us.forEach( user => {
             user.assignedTask = false;
@@ -373,16 +384,24 @@ const assignChores = async ( outOfOffice ) => {
                 availableUsers.push(user);
             }
         });
+
+        if ( availableUsers.length === 0 ) return console.log('No available users...');
+
+        console.log(`The available people are ${ availableUsers.reduce( (aUsers, u) => [...aUsers, u.name], [] ).join(', ')}`);
     });
 
 
     await Chore.find({ deleted: false }, ( err, ch ) => {
+        
         if (err) {
             console.log(util.inspect(err));
         }
 
+        if ( !ch || ch.length === 0 ) return console.log('No available chores...');
+
         ch = ch.filter( c => c.frequency.includes(new Date().getDay()) ).sort( (a, c) => c.difficulty - a.difficulty );
 
+        console.log(`The available chores are ${ ch.reduce( (chs, ch) => [...chs, ch.title], [] ).join(', ')}`);
         currentChores = ch;
     });
 
@@ -403,8 +422,42 @@ const assignChores = async ( outOfOffice ) => {
             // });
             console.log(`${user.name} has been assigned ${chore.title}.`)
             // For now it'll just notify me
-            bot.postMessageToUser("n.brown", `${user.name} has been assigned ${chore.title}.`, params, function(data) {
-                console.log(data);
+            let message = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": `Hi ${user.name}, you've been assigned the chore *${chore.title}*.\n\n *Are you available to do *${chore.title.toLowerCase()}*? If not, I'll reassign this chore to someone else.`
+                    }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "I'm available",
+                            "emoji": true
+                            },
+                        "style": "primary",
+                        "value": "available"
+                        },
+                        {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "I'm not available",
+                            "emoji": true
+                            },
+                        "style": "danger",
+                        "value": "unavailable"
+                        }
+                    ]
+                }
+            ]
+            bot.postMessageToUser("n.brown", message, params, function(data) {
+                console.log('User notified.');
             }).catch(e => console.log(e));
         })
     });

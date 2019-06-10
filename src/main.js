@@ -1,11 +1,17 @@
 let notifications = false;
+let toastContainer = document.querySelector('#toast');
 
 let savedChore = {
-    title: 'Notification test',
-    instructions: 'test',
-    creator: 'test',
+    title: '',
+    instructions: '',
+    creator: '',
     difficulty: 1,
-    frequency: [0, 1, 2, 3]
+    frequency: [1, 2, 3, 4, 5]
+}
+
+const notify = ( message ) => {
+    let data = { message: message };
+    toastContainer.MaterialSnackbar.showSnackbar(data)
 }
 
 const notificationsFab = new Vue({
@@ -17,6 +23,7 @@ const notificationsFab = new Vue({
         supressNotifications: function() {
             notifications = !notifications;
             this.notifications = notifications;
+            notify(`Notifications ${ notifications ? 'on' : 'off' }.`);
         }
     }
 })
@@ -184,7 +191,7 @@ const leftNav = new Vue({
 
 const assignNewChores = () => {
     fetch('/make-new-assignments')
-        .then(res => console.log(res))
+        .then(res => notify('New chores assigned.'))
         .catch(err => {
             console.log(err);
         });

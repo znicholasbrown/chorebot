@@ -39,7 +39,7 @@
             <div class="mdl-layout__drawer">
                 <span class="mdl-layout-title">Chores Bot</span>
                 <nav id="left-nav" class="mdl-navigation">
-                    <a class="mdl-navigation__link" v-on:click="assignNewChores()">Assign New Chores</a>
+                    <a class="mdl-navigation__link" style="cursor: pointer;" v-on:click="assignNewChores()">Assign New Chores</a>
                 </nav>
             </div>
             <main class="mdl-layout__content">
@@ -138,7 +138,7 @@
                         </label>
                         <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-2">
                             <input type="radio" id="option-2" class="mdl-radio__button" name="options" value="2" v-model="chore.difficulty">
-                            <span class="mdl-radio__label">Difficulty</span>
+                            <span class="mdl-radio__label">Hard</span>
                         </label>
                     </div>
                     <div class="mdl-textfield mdl-js-textfield">
@@ -180,6 +180,12 @@
                 </div>
             </div>
         </dialog>
+
+        <div id="toast" class="mdl-js-snackbar mdl-snackbar">
+            <div class="mdl-snackbar__text"></div>
+            <button class="mdl-snackbar__action" type="button"></button>
+        </div>
+
         <script src="/main.js" defer></script>
     </body>
 </html>
