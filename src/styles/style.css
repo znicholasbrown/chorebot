@@ -10,6 +10,12 @@
     bottom: 25px;
 }
 
+#notification-button {
+    position: fixed;
+    right: 100px;
+    bottom: 25px;
+}
+
 .mdl-button--fab.mdl-button--colored {
     background: #1ABC9C !important;
     color: rgb(255,255,255) !important;

@@ -1,10 +1,25 @@
+let notifications = false;
+
 let savedChore = {
-    title: '',
-    instructions: '',
-    creator: '',
-    difficulty: '',
-    frequency: []
+    title: 'Notification test',
+    instructions: 'test',
+    creator: 'test',
+    difficulty: 1,
+    frequency: [0, 1, 2, 3]
 }
+
+const notificationsFab = new Vue({
+    el: '#notification-button',
+    data: {
+        notifications: notifications
+    },
+    methods: {
+        supressNotifications: function() {
+            notifications = !notifications;
+            this.notifications = notifications;
+        }
+    }
+})
 
 const addFab = new Vue({
     el: '#add-chore',
@@ -36,7 +51,7 @@ const newChoreList = ( list ) => {
                         },
                         redirect: 'follow',
                         referrer: 'no-referrer',
-                        body: JSON.stringify({id: id}),
+                        body: JSON.stringify({id: id, notification: notifications}),
                     })
                         .then(res => {
                             location.reload();
@@ -109,7 +124,7 @@ const addChoreForm = new Vue({
         return {chore: savedChore}
     },
     methods: {
-        save: function (chore) {
+        save: function () {
             fetch('/add', 
             {
                 method: 'POST',
@@ -121,7 +136,7 @@ const addChoreForm = new Vue({
                 },
                 redirect: 'follow',
                 referrer: 'no-referrer',
-                body: JSON.stringify(this.chore),
+                body: JSON.stringify({...this.chore, notification: notifications}),
             })
                 .then(res => {
                     location.reload();

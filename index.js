@@ -175,7 +175,7 @@ app.post('/add', jsonParser, (req, res) => {
         if (!err) {
             res.sendStatus(200);
 
-            if (req.body.notify === false) return;
+            if (req.body.notification === false) return console.log(`${chore.title} added by ${chore.creator}.`);
 
             bot.getChannel('chorebot').then(c => {
                 bot.postMessageToChannel(c.name, `${chore.title} added by ${chore.creator}.`, params, function(data) {
@@ -200,6 +200,8 @@ app.post('/delete', jsonParser, (req, res) => {
         if (!err) {
             res.sendStatus(200);
             
+            if (req.body.notification === false) return console.log(`${chore.title} removed.`);
+
             bot.getChannel('chorebot').then(c => {
                 bot.postMessageToChannel(c.name, `${chore.title} removed.`, params, function(data) {
                     console.log(data);

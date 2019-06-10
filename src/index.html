@@ -69,6 +69,12 @@
                         <button id="add-chore" v-on:click="toggleModal" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored">
                             <i class="material-icons">add</i>
                         </button>
+
+                        <button id="notification-button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab" 
+                            v-bind:class="{'mdl-button--colored': notifications}"
+                            v-on:click="supressNotifications">
+                            <i class="material-icons">notification_important</i>
+                        </button>
                     </div>
                 </section>
                 <section v-if="userList" class="mdl-layout__tab-panel" id="users-tab">
@@ -85,7 +91,7 @@
                                     <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect"  v-on:click="toggleActive( user )">
                                         {{ user.isActive ? 'Disable' : 'Enable' }}
                                     </a>
-                                   
+                                
                                 </div>
                             </div>
                         </div>
@@ -169,12 +175,11 @@
 
                 </form>
                 <div class="mdl-dialog__actions">
-                    <button type="button" class="mdl-button"  v-on:click="save(chore)">Save</button>
+                    <button type="button" class="mdl-button" v-on:click="save(chore)">Save</button>
                     <button type="button" class="mdl-button close" v-on:click="closeModal">Close</button>
                 </div>
             </div>
         </dialog>
-              
         <script src="/main.js" defer></script>
     </body>
 </html>
