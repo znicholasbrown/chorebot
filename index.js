@@ -337,7 +337,7 @@ function authorize(callback) {
   
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, (err, token) => {
-      if (err) return getAccessToken(oAuth2Client, callback);
+    //   if (err) return getAccessToken(oAuth2Client, callback);
       oAuth2Client.setCredentials({
           "access_token": process.env.access_token,
           "refresh_token": process.env.refresh_token,
