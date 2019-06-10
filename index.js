@@ -236,7 +236,8 @@ app.post('/delete', jsonParser, (req, res) => {
 
 app.post('/message-endpoint', jsonParser, (req, res) => {
     res.sendStatus(200).end();
-    console.log(req.body)
+    console.log(req.payload)
+    console.log(req.body.payload)
 
     if (req.body.token != token){
         return res.status(403).end("Access forbidden");
@@ -450,7 +451,7 @@ const assignChores = async ( outOfOffice ) => {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": `Hi ${user.name}, you've been assigned the chore *${chore.title}*.\n\n *Are you available to do *${chore.title.toLowerCase()}*? If not, I'll reassign this chore to someone else.`
+                        "text": `Hi ${user.name}, you've been assigned the chore *${chore.title}*.\n\n *Are you available to     *${chore.title.toLowerCase()}*? If not, I'll reassign this chore to someone else.`
                     }
                 },
                 {
@@ -487,10 +488,8 @@ const assignChores = async ( outOfOffice ) => {
                 as_user: true,
                 blocks: blocks,
             }).catch(e => console.log(e));
-            
+
             console.log('User notified.');
         })
     });
 }
-
-authorize(listOOOEvents);
