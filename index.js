@@ -250,7 +250,7 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
     } else {
         response = 'No problem! I\'ll reassign the chore!'
     }
-
+    console.log('User response: ', payload);
     await web.chat.update({
         'ts': payload.actions.action_ts,
         'replace_original': true,
