@@ -234,27 +234,28 @@ app.post('/delete', jsonParser, (req, res) => {
     });
 });
 
-
-app.post('/message-endpoint-2', jsonParser, (req, res) => {
+app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
     res.sendStatus(200).end();
-    console.log('body: ', req.body)
-    console.log('payload: ', req.payload)
-    console.log('body.payload: ', req.body.payload)
 
     if (req.body.token != token){
         return res.status(403).end("Access forbidden");
     }
-});
+    let payload = req.body.payload;
 
-app.post('/message-endpoint', urlEncodedParser, (req, res) => {
-    res.sendStatus(200).end();
-    console.log('body: ', req.body)
-    console.log('payload: ', req.payload)
-    console.log('body.payload: ', req.body.payload)
+    let available = payload.actions[0].value == 'available';
 
-    if (req.body.token != token){
-        return res.status(403).end("Access forbidden");
+    let response = ''
+    if ( available ) {
+        response = 'Great! I\'ll check in at *5pm* to see if you were able to complete the chore!' 
+    } else {
+        response = 'No problem! I\'ll reassign the chore!'
     }
+
+    await web.chat.update({
+        'ts': payload.actions.action_ts,
+        'replace_original': true,
+        'text': response
+    });
 });
 
 
