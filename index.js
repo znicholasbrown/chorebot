@@ -241,7 +241,7 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
     //     return res.status(403).end("Access forbidden");
     // }
     let payload = req.body.payload;
-
+    console.log('User response: ', payload);
     let available = payload.actions[0].value == 'available';
 
     let response = '';
@@ -251,7 +251,7 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
     } else {
         response = 'No problem! I\'ll reassign the chore.'
     }
-    console.log('User response: ', payload);
+
     await web.chat.update({
         'ts': payload.actions.action_ts,
         'replace_original': true,
