@@ -150,7 +150,7 @@ const port = process.env.PORT || 3019;
 app.use(express.static('src'));
 
 let jsonParser = bodyParser.json();
-let urlEncodedParser = bodyParser.urlencoded();
+let urlEncodedParser = bodyParser.urlencoded({ extended: false });
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/src/index.html');
@@ -234,7 +234,8 @@ app.post('/delete', jsonParser, (req, res) => {
     });
 });
 
-app.post('/message-endpoint', (req, res) => {
+
+app.post('/message-endpoint-2', jsonParser, (req, res) => {
     res.sendStatus(200).end();
     console.log('body: ', req.body)
     console.log('payload: ', req.payload)
@@ -243,8 +244,17 @@ app.post('/message-endpoint', (req, res) => {
     if (req.body.token != token){
         return res.status(403).end("Access forbidden");
     }
+});
 
-    
+app.post('/message-endpoint', urlEncodedParser, (req, res) => {
+    res.sendStatus(200).end();
+    console.log('body: ', req.body)
+    console.log('payload: ', req.payload)
+    console.log('body.payload: ', req.body.payload)
+
+    if (req.body.token != token){
+        return res.status(403).end("Access forbidden");
+    }
 });
 
 
