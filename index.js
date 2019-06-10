@@ -80,6 +80,7 @@ const updateUsers = async () => {
     await bot.getUsers().then( async (users) => {
         // Filer any users who have been deleted or are bots
         await users.members.filter(user => !user.deleted && !user.is_bot).forEach( async (user) => {
+
             // Have to do this to get user emails, which we'll compare to google calendar
             await bot.getUserById(user.id).then( async (u) => {
                 let userModel = {
@@ -99,7 +100,6 @@ const updateUsers = async () => {
         });
     });
 }
-updateUsers();
 
 const getDeletedChores = () => {
     Chore.find({ deleted: true }, ( err, docs ) => {
@@ -175,6 +175,8 @@ app.post('/add', jsonParser, (req, res) => {
         if (!err) {
             res.sendStatus(200);
 
+            if (req.body.notify === false) return;
+
             bot.getChannel('chorebot').then(c => {
                 bot.postMessageToChannel(c.name, `${chore.title} added by ${chore.creator}.`, params, function(data) {
                     console.log(data);
@@ -182,6 +184,12 @@ app.post('/add', jsonParser, (req, res) => {
             });
         }
     });
+});
+
+app.get('/make-new-assignments', (req, res) => {
+    authorize(listOOOEvents);
+
+    res.sendStatus(200);
 });
 
 app.post('/delete', jsonParser, (req, res) => {
@@ -330,11 +338,11 @@ function listOOOEvents(auth) {
       if (events.length) {
         let ooo = []
         events.map((event, i) => {
-          const start = event.start.dateTime || event.start.date;
           if ( !ooo.includes(event.creator.email) ) {
               ooo.push(event.creator.email)
           }
         });
+        assignChores(ooo);
       } else {
         console.log('No upcoming events found.');
       }
@@ -351,7 +359,6 @@ const assignChores = async ( outOfOffice ) => {
     await User.find({ isActive: true }, ( err, us ) => {
         if (err) {
             console.log(err);
-            return 400;
         }
 
         us.forEach( user => {
@@ -370,7 +377,6 @@ const assignChores = async ( outOfOffice ) => {
     await Chore.find({ deleted: false }, ( err, ch ) => {
         if (err) {
             console.log(util.inspect(err));
-            return 400;
         }
 
         ch = ch.filter( c => c.frequency.includes(new Date().getDay()) ).sort( (a, c) => c.difficulty - a.difficulty );
@@ -386,19 +392,18 @@ const assignChores = async ( outOfOffice ) => {
         await User.findByIdAndUpdate(assignedUser._id, {assignedTaskId: chore.id, assignedTask: true}, { new: true }, (err, user) => {
             if (err) {
                 console.log(err);
-                return 400;
             }
 
-            bot.getChannel('chorebot').then(c => {
-                bot.postMessageToChannel(c.name, `${user.name} has been assigned ${chore.title}.`, params, function(data) {
-                    console.log(data);
-                });
-            });
-
+            // bot.getChannel('chorebot').then(c => {
+            //     bot.postMessageToChannel(c.name, `${user.name} has been assigned ${chore.title}.`, params, function(data) {
+            //         console.log(data);
+            //     });
+            // });
+            console.log(`${user.name} has been assigned ${chore.title}.`)
             // For now it'll just notify me
-            bot.postMessageToUser("U7WE6F8KY", `${user.name} has been assigned ${chore.title}.`, params, function(data) {
+            bot.postMessageToUser("n.brown", `${user.name} has been assigned ${chore.title}.`, params, function(data) {
                 console.log(data);
-            });
+            }).catch(e => console.log(e));
         })
     });
 }

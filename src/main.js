@@ -158,3 +158,19 @@ const fetchUsers = () => {
 
 fetchChores();
 fetchUsers();
+
+const leftNav = new Vue({
+    el: '#left-nav',
+    data: {},
+    methods: {
+        assignNewChores: () => assignNewChores(),
+    }
+});
+
+const assignNewChores = () => {
+    fetch('/make-new-assignments')
+        .then(res => console.log(res))
+        .catch(err => {
+            console.log(err);
+        });
+}
