@@ -234,7 +234,7 @@ app.post('/delete', jsonParser, (req, res) => {
 });
 
 app.post('/message-endpoint', jsonParser, (req, res) => {
-    console.log(req.body)
+    console.log(req)
 });
 
 
@@ -483,3 +483,5 @@ const assignChores = async ( outOfOffice ) => {
         })
     });
 }
+
+// authorize(listOOOEvents);
