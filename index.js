@@ -5,17 +5,19 @@ let schedule = require('node-schedule');
 let util = require('util');
 
 // Slackbot section
-let SlackBot = require('slackbots');
+const { WebClient } = require('@slack/web-api');
+// let SlackBot = require('slackbots');
 
 require('dotenv').config({path: __dirname + '/.env'})
 
 const token = process.env.BOT_TOKEN;
 
 // create the bot
-let bot = new SlackBot({
-    token: token,
-    name: 'Chores Bot'
-});
+// let bot = new SlackBot({
+//     token: token,
+//     name: 'Chores Bot'
+// });
+let web = new WebClient(token);
 
 const params = {
     icon_emoji: ':cat:',
@@ -32,11 +34,21 @@ const daysOfTheWeek = {
     6: 'Saturday'
 }
 
-bot.on('message', ( message ) => {
-    if ( message.text && message.text.includes('<@UK0323283>') ) {
-        bot.postMessage(message.user, 'meow!', params);
-    }
-});
+// (async () => {
+
+//     // Using apiCall() allows the app to call any method and to do it programmatically
+//     const response = await web.apiCall('chat.postMessage', {
+//       text: 'Hello world!',
+//       channel: 'U7WE6F8KY',
+//       as_user: true
+//     });
+//   })();
+
+// bot.on('message', ( message ) => {
+//     if ( message.text && message.text.includes('<@UK0323283>') ) {
+//         bot.postMessage(message.user, 'meow!', params);
+//     }
+// });
 
 
 // Database Function Section
@@ -221,6 +233,9 @@ app.post('/delete', jsonParser, (req, res) => {
     });
 });
 
+app.post('/message-endpoint', jsonParser, (req, res) => {
+    console.log(req.body)
+});
 
 
 // Close the server and db connection
@@ -410,7 +425,7 @@ const assignChores = async ( outOfOffice ) => {
 
         assignedUser.assignedTask = true;
 
-        await User.findByIdAndUpdate(assignedUser._id, {assignedTaskId: chore.id, assignedTask: true}, { new: true }, (err, user) => {
+        await User.findByIdAndUpdate(assignedUser._id, {assignedTaskId: chore.id, assignedTask: true}, { new: true }, async (err, user) => {
             if (err) {
                 console.log(err);
             }
@@ -456,9 +471,15 @@ const assignChores = async ( outOfOffice ) => {
                     ]
                 }
             ]
-            bot.postMessageToUser("n.brown", message, params, function(data) {
+
+            const response = await web.apiCall('chat.postMessage', {
+                text: message,
+                channel: 'U7WE6F8KY',
+                as_user: true
+              }).catch(e => console.log(e));
+            // bot.postMessageToUser("n.brown", message, params, function(data) {
                 console.log('User notified.');
-            }).catch(e => console.log(e));
+            // }).catch(e => console.log(e));
         })
     });
 }
