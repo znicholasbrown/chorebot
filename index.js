@@ -172,7 +172,7 @@ app.post('/add', jsonParser, (req, res) => {
 
             if (req.body.notification === false) return console.log(`${chore.title} added by ${chore.creator}.`);
 
-            await web.chat.postMessage({
+            web.chat.postMessage({
                 channel: 'U7WE6F8KY',
                 // channel: 'chorebot',
                 text: `${chore.title} added by ${chore.creator}.`,
