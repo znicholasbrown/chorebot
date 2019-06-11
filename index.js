@@ -237,26 +237,33 @@ app.post('/delete', jsonParser, (req, res) => {
 app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
     res.sendStatus(200).end();
 
-    // if (req.body.token != token){
-    //     return res.status(403).end("Access forbidden");
-    // }
     let payload = JSON.parse(req.body.payload);
-    console.log('User response: ', payload);
+
     let available = payload.actions[0].value == 'available';
 
     let response = '';
 
     if ( available ) {
-        response = 'Great! I\'ll check in at *5pm* to see if you were able to complete the chore!' 
+        response = "Great! I'll check in at *5pm* to see if you were able to complete the chore!" 
     } else {
-        response = 'No problem! I\'ll reassign the chore.'
+        response = "No problem! I'll reassign the chore."
     }
 
     await web.chat.update({
         'channel': payload.channel.id,
         'ts': payload.container.message_ts,
         'text': response,
-        'as_user': true
+        'as_user': true,
+        'blocks': [
+            {
+                "type": "section",
+                "text": {
+                    "type": "plain_text",
+                    "text": response,
+                    "emoji": true
+                }
+            }
+        ]
     });
 
 });
