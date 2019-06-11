@@ -547,7 +547,7 @@ const sendChoreMessage = async (user, chore) => {
     await web.chat.postMessage({
         text: `Hi ${user.name}, you've been assigned the chore *${chore.title}*.`,
         mrkdwn: true,
-        channel: 'U7WE6F8KY',
+        channel: user.id,
         as_user: true,
         blocks: blocks,
     }).catch(e => console.log(e));
@@ -566,7 +566,7 @@ const setTaskReminder = async (id, time) => {
 
         console.log(time)
         await web.chat.scheduleMessage({
-            "channel": channel_id,
+            "channel": id,
             "text": `Hi! Were you able to ${chore.title} today?`,
             "post_at": time / 1000,
             "blocks": [
