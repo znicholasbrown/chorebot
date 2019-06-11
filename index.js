@@ -6,17 +6,12 @@ let util = require('util');
 
 // Slackbot section
 const { WebClient } = require('@slack/web-api');
-// let SlackBot = require('slackbots');
 
 require('dotenv').config({path: __dirname + '/.env'})
 
 const token = process.env.BOT_TOKEN;
+const channel_id = process.env.CHANNEL_ID || 'chorebot';
 
-// create the bot
-// let bot = new SlackBot({
-//     token: token,
-//     name: 'Chores Bot'
-// });
 let web = new WebClient(token);
 
 const params = {
@@ -173,8 +168,7 @@ app.post('/add', jsonParser, (req, res) => {
             if (req.body.notification === false) return console.log(`${chore.title} added by ${chore.creator}.`);
 
             web.chat.postMessage({
-                channel: 'U7WE6F8KY',
-                // channel: 'chorebot',
+                channel: channel_id,
                 text: `${chore.title} added by ${chore.creator}.`,
                 ...params
             }).catch(e => console.log(e));
@@ -185,6 +179,12 @@ app.post('/add', jsonParser, (req, res) => {
 app.get('/make-new-assignments', async (req, res) => {
     await updateUsers();
     authorize(listOOOEvents);
+
+    web.chat.postMessage({
+        channel: channel_id,
+        text:  `Chores have been assigned.`,
+        ...params
+    }).catch(e => console.log(e));
 
     res.sendStatus(200);
 });
@@ -198,12 +198,12 @@ app.post('/delete', jsonParser, (req, res) => {
             res.sendStatus(200);
             
             if (req.body.notification === false) return console.log(`${chore.title} removed.`);
-
-            bot.getChannel('chorebot').then(c => {
-                bot.postMessageToChannel(c.name, `${chore.title} removed.`, params, function(data) {
-                    console.log(data);
-                });
-            });
+            
+            web.chat.postMessage({
+                channel: channel_id,
+                text:  `${chore.title} removed.`,
+                ...params
+            }).catch(e => console.log(e));
         }
     });
 });
@@ -221,8 +221,11 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
         response = "Great! I'll check in at *5pm* to see if you were able to complete the chore!" 
     } else {
         response = "No problem! I'll reassign the chore."
-        assignChores()
+        // Pass in the slack user id
+        // We'll use that to find the correct chore to reassign
+        reassignChore(payload.user.id);
     }
+    console.log(payload)
 
     await web.chat.update({
         'channel': payload.channel.id,
@@ -290,11 +293,11 @@ schedule.scheduleJob('0 10 * * 1-5', (sched) => {
 
         docs = docs.filter( d => d.frequency.includes(new Date().getDay()) );
 
-        bot.getChannel('chorebot').then(c => {
-            bot.postMessageToChannel(c.name, `The scheduled chores for today are: ${docs.reduce( (acc, doc) => [...acc, doc.title], []).join(', ')}`, params, function(data) {
-                console.log(data);
-            });
-        });
+        web.chat.postMessage({
+            channel: channel_id,
+            text:  `The scheduled chores for today are: ${docs.reduce( (acc, doc) => [...acc, doc.title], []).join(', ')}`,
+            ...params
+        }).catch(e => console.log(e));
 
         authorize(listOOOEvents);
     });
@@ -408,12 +411,16 @@ const assignChores = async ( outOfOffice ) => {
         us.forEach( user => {
             user.assignedTask = false;
             user.assignedTaskId = false;
-            user.save();
+            user.isUnavailable = false;
+            
 
             // Doesn't include those in the out of office calendar
             if ( !outOfOffice.includes(user.email) ) {
+                user.isUnavailable = true;
                 availableUsers.push(user);
             }
+
+            user.save();
         });
 
         if ( availableUsers.length === 0 ) return console.log('No available users...');
@@ -437,7 +444,8 @@ const assignChores = async ( outOfOffice ) => {
     });
 
     currentChores.forEach( async (chore) => {
-        let assignedUser = availableUsers.find( (u) => !u.assignedTask );
+        // let assignedUser = availableUsers.find( (u) => !u.assignedTask );
+        let assignedUser = availableUsers.find( (u) => u._id == '5cfae99c58dcd60004bee08a' );
 
         assignedUser.assignedTask = true;
 
@@ -446,61 +454,84 @@ const assignChores = async ( outOfOffice ) => {
                 console.log(err);
             }
 
-            // bot.getChannel('chorebot').then(c => {
-            //     bot.postMessageToChannel(c.name, `${user.name} has been assigned ${chore.title}.`, params, function(data) {
-            //         console.log(data);
-            //     });
-            // });
             console.log(`${user.name} has been assigned ${chore.title}.`)
-            // For now it'll just notify me
-            let blocks = [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": `Hi ${user.name}, you've been assigned the chore *${chore.title}*.\n\n *Are you available to     *${chore.title.toLowerCase()}*? If not, I'll reassign this chore to someone else.`
-                    }
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "I'm available",
-                            "emoji": true
-                            },
-                        "style": "primary",
-                        "value": "available"
-                        },
-                        {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "I'm not available",
-                            "emoji": true
-                            },
-                        "style": "danger",
-                        "value": "unavailable"
-                        }
-                    ]
-                }
-            ]
-
-            await web.chat.postMessage({
-                text: `Hi ${user.name}, you've been assigned the chore *${chore.title}*.`,
-                mrkdwn: true,
-                channel: 'U7WE6F8KY',
-                as_user: true,
-                blocks: blocks,
-            }).catch(e => console.log(e));
-
-            console.log('User notified.');
-        })
+            sendChoreMessage(user, chore);
+        });
     });
 }
 
-const assignChore = (chore) => {
+const reassignChore = async (id) => {
+    let taskId = '';
 
+    // Mark the current user as unavailable
+    await User.findOneAndUpdate({ id: id }, { isUnavailable: true }, { new: true}, ( err, user ) => {
+        if (err) console.log(util.inspect(err));
+
+        taskId = user.assignedTaskId;
+    });
+
+    // Find the next lowest-scored user who is available, is active, and hasn't been assigned as task
+    // await User.findOne({ isActive: true, assignedTask: false, assignedTaskId: false, isUnavailable: false })
+    await User.findOne({ isActive: true, _id: '5cfae99c58dcd60004bee08a' })
+    .sort('-score')
+    .exec( async ( err, user ) => {
+        if (err) {
+            console.log(err);
+        }
+        if ( !user || user.length === 0 ) return console.log('No users...');
+
+        user.assignedTaskId = taskId;
+        user.assignedTask = true;
+        user.save();
+
+        await Chore.findOne({ _id: taskId }, (err, chore) => {
+            sendChoreMessage(user, chore);
+        });
+    });
+}
+
+const sendChoreMessage = async (user, chore) => {
+    // For now it'll just notify me
+    let blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": `Hi ${user.name}, you've been assigned the chore *${chore.title}*.\n\n *Are you available to *${chore.title.toLowerCase()}*? If not, I'll reassign this chore to someone else.`
+            }
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                "type": "button",
+                "text": {
+                    "type": "plain_text",
+                    "text": "I'm available",
+                    "emoji": true
+                    },
+                "style": "primary",
+                "value": "available"
+                },
+                {
+                "type": "button",
+                "text": {
+                    "type": "plain_text",
+                    "text": "I'm not available",
+                    "emoji": true
+                    },
+                "style": "danger",
+                "value": "unavailable"
+                }
+            ]
+        }
+    ]
+
+    await web.chat.postMessage({
+        text: `Hi ${user.name}, you've been assigned the chore *${chore.title}*.`,
+        mrkdwn: true,
+        channel: 'U7WE6F8KY',
+        as_user: true,
+        blocks: blocks,
+    }).catch(e => console.log(e));
 }
