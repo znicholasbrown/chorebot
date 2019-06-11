@@ -251,7 +251,7 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
 
     await web.chat.update({
         'channel': payload.channel.id,
-        'ts': payload.container.message_ts,
+        'ts': payload.actions[0].action_ts,
         'text': response,
         'as_user': true,
         'blocks': [
