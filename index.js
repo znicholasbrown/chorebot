@@ -82,6 +82,7 @@ const UserSchema = new Schema({
     recentTask: { type: String, default: '' },
     assignedTask: { type: Boolean, default: false },
     assignedTaskId: { type: String, default: false },
+    isUnavailable: { type: Boolean, default: false },
     respondedToMessage: { type: Boolean, default: false }
 });
 
@@ -89,26 +90,24 @@ const User = mongoose.model('slack_user', UserSchema);
 
 // Makes sure we have any new members that have been added to Slack!
 const updateUsers = async () => {
-    await bot.getUsers().then( async (users) => {
-        // Filer any users who have been deleted or are bots
-        await users.members.filter(user => !user.deleted && !user.is_bot).forEach( async (user) => {
+    console.log('Updating users')
 
-            // Have to do this to get user emails, which we'll compare to google calendar
-            await bot.getUserById(user.id).then( async (u) => {
-                let userModel = {
-                    id: u.id,
-                    email: u.profile.email,
-                    name: u.profile.real_name_normalized,
-                    userName: u.name,
-                    image: u.profile.image_512
-                }
+    const users = await web.users.list({}).catch(e => console.log(e));
 
-                await User.findOneAndUpdate({ id: u.id }, userModel, { upsert: true, new: true, setDefaultsOnInsert: true }, (err, res) => {
-                    if (err) {
-                        console.log(util.inspect(err));
-                    }
-                });
-            }).catch( e => console.log(util.inspect(e)));
+    // Filter any users who have been deleted or are bots
+    await users.members.filter(user => !user.deleted && !user.is_bot).forEach( async (u) => {
+        let userModel = {
+            id: u.id,
+            email: u.profile.email,
+            name: u.profile.real_name_normalized,
+            userName: u.name,
+            image: u.profile.image_512
+        }
+
+        await User.findOneAndUpdate({ id: u.id }, userModel, { upsert: true, new: true, setDefaultsOnInsert: true }, (err, res) => {
+            if (err) {
+                console.log(util.inspect(err));
+            }
         });
     });
 }
@@ -210,6 +209,7 @@ app.post('/add', jsonParser, (req, res) => {
 });
 
 app.get('/make-new-assignments', (req, res) => {
+    await updateUsers();
     authorize(listOOOEvents);
 
     res.sendStatus(200);
@@ -247,14 +247,17 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
         response = "Great! I'll check in at *5pm* to see if you were able to complete the chore!" 
     } else {
         response = "No problem! I'll reassign the chore."
+        assignChores()
     }
 
     await web.chat.update({
         'channel': payload.channel.id,
-        'ts': payload.actions[0].action_ts,
+        'ts': payload.container.message_ts,
         'text': response,
         'as_user': true,
+        "replace_original": "true",
         'blocks': [
+            payload.message.blocks[0], // This gets the first block so that the chore description isn't lost.
             {
                 "type": "section",
                 "text": {
@@ -288,6 +291,8 @@ process.on( 'SIGTERM', () => {
 
 // Job scheduler
 schedule.scheduleJob('0 10 * * 1-5', (sched) => {
+    updateUsers();
+
     // Resets the assigned tasks at the beginning of the day. 
     User.find(( err, user ) => {
         if (err) {
@@ -508,7 +513,7 @@ const assignChores = async ( outOfOffice ) => {
                     ]
                 }
             ]
-            // console.log(attachments);
+
             await web.chat.postMessage({
                 text: `Hi ${user.name}, you've been assigned the chore *${chore.title}*.`,
                 mrkdwn: true,
@@ -520,4 +525,8 @@ const assignChores = async ( outOfOffice ) => {
             console.log('User notified.');
         })
     });
+}
+
+const assignChore = (chore) => {
+
 }
