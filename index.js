@@ -431,20 +431,24 @@ const assignChores = async ( outOfOffice ) => {
     });
 
     if ( availableUsers.length === 0 ) return console.log('No available users...');
-    console.log(`The available people are ${ availableUsers.reduce( (aUsers, u) => [...aUsers, u.name], [] ).join(', ')}`);
+
+    await sendChannelMessage(`The available people are ${ availableUsers.reduce( (aUsers, u) => [...aUsers, u.name], [] ).join(', ')}`);
 
     let currentChores = await getAvailableChores();
 
     if ( !currentChores || currentChores.length === 0 ) return console.log('No available chores...');
 
     currentChores = currentChores.filter( c => c.frequency.includes( new Date().getDay()) ).sort( (a, c) => c.difficulty - a.difficulty );
-    console.log(`The available chores are ${ currentChores.reduce( (chs, ch) => [...chs, ch.title], [] ).join(', ')}`);
 
+    await sendChannelMessage(`The available chores are ${ currentChores.reduce( (chs, ch) => [...chs, ch.title], [] ).join(', ')}`);
 
-    console.log('Before Chore loop')
     currentChores.forEach( (chore) => {
-        console.log(availableUsers)
-        let assignedUser = availableUsers.find( (u) => !u.assignedTask );
+        let i = availableUsers.findIndex( (u) => !u.assignedTask );
+
+        availableUsers[i].assignedTask = true;
+
+        let assignedUser = availableUsers[i];
+        
         
         if ( !assignedUser ) return console.log(`Unable to assign the chore ${chore.title}: no available users.`)
 
@@ -470,15 +474,13 @@ const getAvailableChores = async () => {
 
 const assignChore = async (chore, user) => {
     // Mark the current user as unavailable
-    await User.findOneAndUpdate({ id: user.id }, { assignedTask: chore._id, assignedTask: true }, { new: true}, ( err, user ) => {
+    await User.findOneAndUpdate({ id: user.id }, { assignedTaskId: chore._id, assignedTask: true }, { new: true}, ( err, user ) => {
         if (err) console.log(util.inspect(err));
 
         console.log(`${user.name} has been assigned ${chore.title}.`)
         sendChoreMessage(user, chore);
     });
 }
-
-assignChores([]);
 
 const reassignChore = async (id) => {
     let taskId = '';
@@ -547,8 +549,10 @@ const sendChoreMessage = async (user, chore) => {
         }
     ]
 
+    await sendChannelMessage(`${user.name} has been assigned to *${chore.title.toLowerCase()}*.`)
+
     await web.chat.postMessage({
-        text: `Hi ${user.name}, you've been assigned the chore *${chore.title}*.`,
+        text: `Hi ${user.name}, you've been assigned the chore *${chore.title.toLowerCase()}*.`,
         mrkdwn: true,
         channel: user.id,
         as_user: true,
@@ -556,58 +560,73 @@ const sendChoreMessage = async (user, chore) => {
     }).catch(e => console.log(e));
 }
 
+const sendChannelMessage = async (message) => {
+    let blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": message
+            }
+        }
+    ]
+
+    await web.chat.postMessage({
+        text: message,
+        mrkdwn: true,
+        channel: channel_id,
+        as_user: true,
+        blocks: blocks,
+    }).catch(e => console.log(e));
+}
+
 const setTaskReminder = async (id, time) => {
-    let taskId = '';
-
-    await User.findOne({ id: id }, ( err, user ) => {
-        if (err) console.log(util.inspect(err));
+    let user = await User.findOne({ id: id }, ( err, user ) => user);
         
-         taskId = user.assignedTaskId;
+    let taskId = user.assignedTaskId;
+        
+    console.log(`Setting task reminder for task id: ${taskId} at ${time} for ${user.name}`);
 
-         return console.log(`Setting task reminder for task id: ${taskId} at ${time} for user id: ${id}`);
-    });
+    let chore = await Chore.findOne({ _id: taskId }, (err, chore) => chore);
 
-
-    await Chore.findOne({ _id: taskId }, async (err, chore) => {
-        await web.chat.scheduleMessage({
-            "channel": id,
-            "text": `Hi! Were you able to ${chore.title.toLowerCase()} today?`,
-            "post_at": time / 1000,
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": `Hi! Were you able to *${chore.title.toLowerCase()}* today?`
-                    }
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Yes! 😁",
-                            "emoji": true
-                            },
-                        "style": "primary",
-                        "value": "complete"
-                        },
-                        {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "No 😔",
-                            "emoji": true
-                            },
-                        "style": "danger",
-                        "value": "incomplete"
-                        }
-                    ]
+    web.chat.scheduleMessage({
+        "channel": id,
+        "text": `Hi! Were you able to ${chore.title.toLowerCase()} today?`,
+        "post_at": time / 1000,
+        "blocks": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": `Hi! Were you able to *${chore.title.toLowerCase()}* today?`
                 }
-            ],
-            ...params
-        });
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Yes! 😁",
+                        "emoji": true
+                        },
+                    "style": "primary",
+                    "value": "complete"
+                    },
+                    {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "No 😔",
+                        "emoji": true
+                        },
+                    "style": "danger",
+                    "value": "incomplete"
+                    }
+                ]
+            }
+        ],
+        ...params
     });
 }
