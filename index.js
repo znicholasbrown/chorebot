@@ -212,20 +212,37 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
     res.sendStatus(200).end();
 
     let payload = JSON.parse(req.body.payload);
-
-    let available = payload.actions[0].value == 'available';
-
     let response = '';
 
-    if ( available ) {
-        response = "Great! I'll check in at *5pm* to see if you were able to complete the chore!" 
-    } else {
-        response = "No problem! I'll reassign the chore."
-        // Pass in the slack user id
-        // We'll use that to find the correct chore to reassign
-        reassignChore(payload.user.id);
+    switch( payload.actions[0].value ) {
+        case 'available':
+
+            let date = new Date(),
+                year = date.getFullYear(),
+                month = date.getMonth(),
+                day  = date.getDate(),
+                hour = date.getHours(),
+                minute = date.getMinutes(),
+                second = date.getSeconds() + 10;
+
+            let time = new Date(year, month, day, hour, minute, second).getTime();
+
+            response = `Great! I'll check in at *${time}* to see if you were able to complete the chore!`;
+            setTaskReminder(payload.user.id, time); 
+            break;
+        case 'unavailable':
+            response = "No problem! I'll reassign the chore."
+            // Pass in the slack user id
+            // We'll use that to find the correct chore to reassign
+            reassignChore(payload.user.id);
+            break;
+        case 'complete':
+            response = "Well done! You make the office a better place 😋"
+            break;
+        case 'incomplete':
+            response = "Uhoh! ☹️ Contributing to the office is important for everyone. Hopefully you'll be able to next time!"
+            break;
     }
-    console.log(payload)
 
     await web.chat.update({
         'channel': payload.channel.id,
@@ -238,9 +255,8 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
             {
                 "type": "section",
                 "text": {
-                    "type": "plain_text",
-                    "text": response,
-                    "emoji": true
+                    "type": "mrkdwn",
+                    "text": response
                 }
             }
         ]
@@ -534,4 +550,58 @@ const sendChoreMessage = async (user, chore) => {
         as_user: true,
         blocks: blocks,
     }).catch(e => console.log(e));
+}
+
+const setTaskReminder = async (id, time) => {
+    let taskId = '';
+
+    await User.findOne({ id: id }, ( err, user ) => {
+        if (err) console.log(util.inspect(err));
+
+        taskId = user.assignedTaskId;
+    });
+
+    await Chore.findOne({ _id: taskId }, async (err, chore) => {
+
+        console.log(time)
+        await web.chat.scheduleMessage({
+            "channel": channel_id,
+            "text": `Hi! Were you able to ${chore.title} today?`,
+            "post_at": time / 1000,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": `Hi! Were you able to *${chore.title.toLowerCase()}* today?`
+                    }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Yes! 😁",
+                            "emoji": true
+                            },
+                        "style": "primary",
+                        "value": "complete"
+                        },
+                        {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "No 😔",
+                            "emoji": true
+                            },
+                        "style": "danger",
+                        "value": "incomplete"
+                        }
+                    ]
+                }
+            ]
+        });
+    });
 }
