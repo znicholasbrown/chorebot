@@ -252,24 +252,13 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
         response = 'No problem! I\'ll reassign the chore.'
     }
 
-    await fetch(payload.response_url, {
-        method: 'POST',
-        headers: {
-            'Content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            'channel': payload.user.id,
-            'ts': payload.actions.action_ts,
-            'replace_original': true,
-            'text': response
-        })
-    }).then(res => console.log(res))
-    // await web.chat.update({
-    //     'channel': payload.user.id,
-    //     'ts': payload.actions.action_ts,
-    //     'replace_original': true,
-    //     'text': response
-    // });
+    await web.chat.update({
+        'channel': payload.channel.id,
+        'ts': payload.container.message_ts,
+        'text': response,
+        'as_user': true
+    });
+
 });
 
 
