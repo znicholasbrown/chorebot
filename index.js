@@ -240,7 +240,7 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
     // if (req.body.token != token){
     //     return res.status(403).end("Access forbidden");
     // }
-    let payload = req.body.payload;
+    let payload = JSON.parse(req.body.payload);
     console.log('User response: ', payload);
     let available = payload.actions[0].value == 'available';
 
