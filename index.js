@@ -462,7 +462,7 @@ const assignChores = async ( outOfOffice ) => {
 
     currentChores.forEach( async (chore) => {
         // let assignedUser = availableUsers.find( (u) => !u.assignedTask );
-        let assignedUser = availableUsers.find( (u) => u._id == '5cfae99c58dcd60004bee08a' );
+        let assignedUser = availableUsers.find( (u) => u._id == "5cfd174d3666580004a97b03" );
 
         assignedUser.assignedTask = true;
 
@@ -489,7 +489,7 @@ const reassignChore = async (id) => {
 
     // Find the next lowest-scored user who is available, is active, and hasn't been assigned as task
     // await User.findOne({ isActive: true, assignedTask: false, assignedTaskId: false, isUnavailable: false })
-    await User.findOne({ isActive: true, _id: '5cfae99c58dcd60004bee08a' })
+    await User.findOne({ isActive: true })
     .sort('-score')
     .exec( async ( err, user ) => {
         if (err) {
