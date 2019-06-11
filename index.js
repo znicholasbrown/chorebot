@@ -182,7 +182,7 @@ app.post('/add', jsonParser, (req, res) => {
     });
 });
 
-app.get('/make-new-assignments', (req, res) => {
+app.get('/make-new-assignments', async (req, res) => {
     await updateUsers();
     authorize(listOOOEvents);
 
