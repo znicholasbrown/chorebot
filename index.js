@@ -50,7 +50,7 @@ const UserSchema = new Schema({
     score: { type: Number, default: 0 },
     recentTask: { type: String, default: '' },
     assignedTask: { type: Boolean, default: false },
-    assignedTaskId: { type: String, default: false },
+    assignedTaskId: { type: String, default: null },
     isUnavailable: { type: Boolean, default: false },
     respondedToMessage: { type: Boolean, default: false }
 });
@@ -217,8 +217,7 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
 
     switch( payload.actions[0].value ) {
         case 'available':
-
-            let date = new Date(),
+            let date = new Date(Date.now()),
                 year = date.getFullYear(),
                 month = date.getMonth(),
                 day  = date.getDate(),
@@ -227,6 +226,8 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
                 second = date.getSeconds() + 10;
 
             let time = new Date(year, month, day, hour, minute, second).getTime();
+
+            console.log(time);
 
             response = `Great! I'll check in *${moment(time).fromNow()}* to see if you were able to complete the chore!`;
             setTaskReminder(payload.user.id, time); 
@@ -413,69 +414,71 @@ function listOOOEvents(auth) {
 }
 
 // Chore assignment logic
-
 const assignChores = async ( outOfOffice ) => {
     console.log('Assigning chores...');
-    let availableUsers = [],
-        currentChores = [];
+    let availableUsers = [];
 
-    await User.find({ isActive: true }, ( err, us ) => {
-        if (err) {
-            console.log(err);
+    await resetUserTasks();
+    let users = await getAvailableUsers();
+    if ( !users || users.length === 0 ) return console.log('No users...');
+
+    users.forEach( user => {
+        // Doesn't include those in the out of office calendar
+        if ( !outOfOffice.includes(user.email) ) {
+            user.isUnavailable = true;
+            availableUsers.push(user);
         }
-        if ( !us || us.length === 0 ) return console.log('No users...');
-
-        us.forEach( user => {
-            user.assignedTask = false;
-            user.assignedTaskId = false;
-            user.isUnavailable = false;
-            
-
-            // Doesn't include those in the out of office calendar
-            if ( !outOfOffice.includes(user.email) ) {
-                user.isUnavailable = true;
-                availableUsers.push(user);
-            }
-
-            user.save();
-        });
-
-        if ( availableUsers.length === 0 ) return console.log('No available users...');
-
-        console.log(`The available people are ${ availableUsers.reduce( (aUsers, u) => [...aUsers, u.name], [] ).join(', ')}`);
     });
 
+    if ( availableUsers.length === 0 ) return console.log('No available users...');
+    console.log(`The available people are ${ availableUsers.reduce( (aUsers, u) => [...aUsers, u.name], [] ).join(', ')}`);
 
-    await Chore.find({ deleted: false }, ( err, ch ) => {
+    let currentChores = await getAvailableChores();
+
+    if ( !currentChores || currentChores.length === 0 ) return console.log('No available chores...');
+
+    currentChores = currentChores.filter( c => c.frequency.includes( new Date().getDay()) ).sort( (a, c) => c.difficulty - a.difficulty );
+    console.log(`The available chores are ${ currentChores.reduce( (chs, ch) => [...chs, ch.title], [] ).join(', ')}`);
+
+
+    console.log('Before Chore loop')
+    currentChores.forEach( (chore) => {
+        console.log(availableUsers)
+        let assignedUser = availableUsers.find( (u) => !u.assignedTask );
         
-        if (err) {
-            console.log(util.inspect(err));
-        }
+        if ( !assignedUser ) return console.log(`Unable to assign the chore ${chore.title}: no available users.`)
 
-        if ( !ch || ch.length === 0 ) return console.log('No available chores...');
-
-        ch = ch.filter( c => c.frequency.includes(new Date().getDay()) ).sort( (a, c) => c.difficulty - a.difficulty );
-
-        console.log(`The available chores are ${ ch.reduce( (chs, ch) => [...chs, ch.title], [] ).join(', ')}`);
-        currentChores = ch;
-    });
-
-    currentChores.forEach( async (chore) => {
-        // let assignedUser = availableUsers.find( (u) => !u.assignedTask );
-        let assignedUser = availableUsers.find( (u) => u._id == "5cfd174d3666580004a97b03" );
-
-        assignedUser.assignedTask = true;
-
-        await User.findByIdAndUpdate(assignedUser._id, {assignedTaskId: chore.id, assignedTask: true}, { new: true }, async (err, user) => {
-            if (err) {
-                console.log(err);
-            }
-
-            console.log(`${user.name} has been assigned ${chore.title}.`)
-            sendChoreMessage(user, chore);
-        });
+        assignChore(chore, assignedUser);
     });
 }
+
+const resetUserTasks = async () => {
+    return User.updateMany({}, { assignedTask: false, assignedTaskId: null, isUnavailable: false }, { new: true });
+}
+
+const getActiveUsers = async () => {
+    return User.find({ isActive: true }, (err, users) => users);
+}
+
+const getAvailableUsers = async () => {
+    return User.find({ isActive: true, assignedTask: false, isUnavailable: false }, (err, users) => users);
+}
+
+const getAvailableChores = async () => {
+    return Chore.find({ deleted: false }, (err, chores) => chores);
+}
+
+const assignChore = async (chore, user) => {
+    // Mark the current user as unavailable
+    await User.findOneAndUpdate({ id: user.id }, { assignedTask: chore._id, assignedTask: true }, { new: true}, ( err, user ) => {
+        if (err) console.log(util.inspect(err));
+
+        console.log(`${user.name} has been assigned ${chore.title}.`)
+        sendChoreMessage(user, chore);
+    });
+}
+
+assignChores([]);
 
 const reassignChore = async (id) => {
     let taskId = '';
@@ -558,16 +561,17 @@ const setTaskReminder = async (id, time) => {
 
     await User.findOne({ id: id }, ( err, user ) => {
         if (err) console.log(util.inspect(err));
+        
+         taskId = user.assignedTaskId;
 
-        taskId = user.assignedTaskId;
+         return console.log(`Setting task reminder for task id: ${taskId} at ${time} for user id: ${id}`);
     });
 
-    await Chore.findOne({ _id: taskId }, async (err, chore) => {
 
-        console.log(time)
+    await Chore.findOne({ _id: taskId }, async (err, chore) => {
         await web.chat.scheduleMessage({
             "channel": id,
-            "text": `Hi! Were you able to ${chore.title} today?`,
+            "text": `Hi! Were you able to ${chore.title.toLowerCase()} today?`,
             "post_at": time / 1000,
             "blocks": [
                 {
@@ -602,7 +606,8 @@ const setTaskReminder = async (id, time) => {
                         }
                     ]
                 }
-            ]
+            ],
+            ...params
         });
     });
 }
