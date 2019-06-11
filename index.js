@@ -253,6 +253,7 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
     }
 
     await web.chat.update({
+        'channel': payload.user.id,
         'ts': payload.actions.action_ts,
         'replace_original': true,
         'text': response
