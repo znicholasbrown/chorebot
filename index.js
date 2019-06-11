@@ -24,33 +24,6 @@ const params = {
     as_user: true
 }
 
-const daysOfTheWeek = {
-    0: 'Sunday',
-    1: 'Monday',
-    2: 'Tuesday',
-    3: 'Wednesday',
-    4: 'Thursday',
-    5: 'Friday',
-    6: 'Saturday'
-}
-
-// (async () => {
-
-//     // Using apiCall() allows the app to call any method and to do it programmatically
-//     const response = await web.apiCall('chat.postMessage', {
-//       text: 'Hello world!',
-//       channel: 'U7WE6F8KY',
-//       as_user: true
-//     });
-//   })();
-
-// bot.on('message', ( message ) => {
-//     if ( message.text && message.text.includes('<@UK0323283>') ) {
-//         bot.postMessage(message.user, 'meow!', params);
-//     }
-// });
-
-
 // Database Function Section
 mongoose.set('useNewUrlParser', true);
 mongoose.set('useFindAndModify', false);
@@ -199,11 +172,12 @@ app.post('/add', jsonParser, (req, res) => {
 
             if (req.body.notification === false) return console.log(`${chore.title} added by ${chore.creator}.`);
 
-            bot.getChannel('chorebot').then(c => {
-                bot.postMessageToChannel(c.name, `${chore.title} added by ${chore.creator}.`, params, function(data) {
-                    console.log(data);
-                });
-            });
+            await web.chat.postMessage({
+                channel: 'U7WE6F8KY',
+                // channel: 'chorebot',
+                text: `${chore.title} added by ${chore.creator}.`,
+                ...params
+            }).catch(e => console.log(e));
         }
     });
 });
