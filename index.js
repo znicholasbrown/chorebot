@@ -3,6 +3,7 @@ let express = require('express');
 let bodyParser = require('body-parser');
 let schedule = require('node-schedule');
 let util = require('util');
+let moment = require('moment');
 
 // Slackbot section
 const { WebClient } = require('@slack/web-api');
@@ -227,7 +228,7 @@ app.post('/message-endpoint', urlEncodedParser, async (req, res) => {
 
             let time = new Date(year, month, day, hour, minute, second).getTime();
 
-            response = `Great! I'll check in at *${time}* to see if you were able to complete the chore!`;
+            response = `Great! I'll check in *${moment(time).fromNow()}* to see if you were able to complete the chore!`;
             setTaskReminder(payload.user.id, time); 
             break;
         case 'unavailable':
